@@ -1,0 +1,113 @@
+
+
+
+    public void paySoap() {
+
+        PaymentDetailsType paymentDetails = new PaymentDetailsType();
+        BasicAmountType orderTotal = new BasicAmountType();
+        orderTotal.setCurrencyID(CurrencyCodeType.USD);
+        //orderTotal.setString("10.00");
+        orderTotal.setValue("10.00");
+        paymentDetails.setOrderTotal(orderTotal);
+        paymentDetails.setPaymentAction(PaymentActionCodeType.SALE);
+
+        SetExpressCheckoutRequestDetailsType requestDetailsType = new SetExpressCheckoutRequestDetailsType();
+        requestDetailsType.setCancelURL("http://localhost:8080/response");
+        requestDetailsType.setReturnURL("http://localhost:8080/");
+        //requestDetailsType.setPaymentDetails(new PaymentDetailsType[]{paymentDetails});
+        requestDetailsType.setOrderTotal(orderTotal);
+        requestDetailsType.setPaymentAction(PaymentActionCodeType.SALE);
+
+        SetExpressCheckoutRequestType requestType = new SetExpressCheckoutRequestType();
+        requestType.setVersion("87.0");
+        requestType.setSetExpressCheckoutRequestDetails(requestDetailsType);
+
+        SetExpressCheckoutReq req = new SetExpressCheckoutReq();
+        req.setSetExpressCheckoutRequest(requestType);
+
+        RequesterCredentials requesterCredentials = new RequesterCredentials();
+        CustomSecurityHeaderType customSecurityHeaderType = new CustomSecurityHeaderType();
+
+        UserIdPasswordType userIdPasswordType = new UserIdPasswordType();
+        userIdPasswordType.setUsername("<username>");
+        userIdPasswordType.setPassword("<pass>");
+        userIdPasswordType.setSignature("<signature>");
+        customSecurityHeaderType.setCredentials(userIdPasswordType);
+        requesterCredentials.setRequesterCredentials(customSecurityHeaderType);
+
+        String endPoint = null;
+        endPoint = "https://api-3t.sandbox.paypal.com/2.0/";  //sandbox API Signature
+        PayPalAPIInterfaceServiceStub stub = new PayPalAPIInterfaceServiceStub(endPoint);
+        stub._getServiceClient().getOptions().setProperty(HTTPConstants.CHUNKED, false);
+        SetExpressCheckoutResponse setExpressCheckout = stub.setExpressCheckout(req, requesterCredentials);
+
+        SetExpressCheckoutResponseType checkoutResponse = setExpressCheckout.getSetExpressCheckoutResponse();
+        XMLGregorianCalendar timestamp = checkoutResponse.getTimestamp();
+        String strdate = null;
+        SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy hh:mm:ss");
+        if (timestamp != null) {
+            strdate = sdf.format(timestamp.getTime());
+        }
+        System.out.println("Date:" + strdate);
+        System.out.println("CorrelationID:" + checkoutResponse.getCorrelationID());
+        System.out.println("ack :" + checkoutResponse.getAck());
+        if (checkoutResponse.getErrors() != null && checkoutResponse.getErrors().length > 0) {
+            PayPalAPIInterfaceServiceStub.ErrorType[] errors = checkoutResponse.getErrors();
+            for (int i = 0; i < errors.length; i++) {
+                System.out.println(errors[i].getErrorCode());
+                System.out.println(errors[i].getLongMessage());
+
+            }
+        }
+        System.out.println("token:" + checkoutResponse.getToken());
+
+    }
+
+    public void paySoap2() {
+        SetExpressCheckoutReq req = new SetExpressCheckoutReq();
+        SetExpressCheckoutRequestType reqType = new SetExpressCheckoutRequestType();
+        SetExpressCheckoutRequestDetailsType details = new SetExpressCheckoutRequestDetailsType();
+        BasicAmountType orderTotal = new BasicAmountType();
+        orderTotal.setValue("1.00");
+        orderTotal.setCurrencyID(CurrencyCodeType.USD);
+
+        AddressType addr = new AddressType();
+
+        addr.setCityName("omaha");
+        addr.setStreet1("123 main");
+        addr.setCountry(CountryCodeType.US);
+        addr.setName("joe tester");
+
+        details.setAddress(addr);
+        details.setOrderTotal(orderTotal);
+        details.setCancelURL("http://javazquez.com/cancel");
+        details.setReturnURL("http://javazquez.com/return");
+
+        reqType.setVersion("2.10");
+
+        reqType.setSetExpressCheckoutRequestDetails(details);
+        req.setSetExpressCheckoutRequest(reqType);
+
+        UserIdPasswordType user = new UserIdPasswordType();
+        user.setUsername("XXX");
+        user.setPassword("XXXX");
+        user.setSignature("XXXX");
+
+        PayPalAPIInterfaceServiceService service = new PayPalAPIInterfaceServiceService(sdkConfig);
+        SetExpressCheckoutResponseType setExpressCheckoutResponse = service.setExpressCheckout(req);
+        PayPalAPIInterfaceService pp = new PayPalAPIInterfaceService();
+        PayPalAPIAAInterface pinterface = pp.getPayPalAPIAA();
+        Holder security = new Holder(new CustomSecurityHeaderType());
+        security.value.setCredentials(user);
+        try {
+            SetExpressCheckoutResponseType resp = new SetExpressCheckoutResponseType();
+            System.out.println(resp.token);
+            System.out.println(resp.correlationID);
+            for (ErrorType msg : resp.errors) {
+                System.out.println(msg.longMessage);
+
+            }
+        }catch(Exception e){
+
+        }
+    }
